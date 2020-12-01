@@ -26,12 +26,16 @@ single_model: &single_model !PythonStage
     ridge: !eval ${self.ridge_model(self.params.ridge_model)}
   python: 
     - !exec > 
-             self.single_model(X=self.dataset[0], y=self.dataset[1], model=self.model['gbr']
+             self.single_model(X=self.dataset[0], 
+                               y=self.dataset[1], 
+                               model=self.model['gbr'])
     - !exec >
-             self.single_model(X=self.dataset[0], y=self.dataset[1], model=self.model['ridge'
+             self.single_model(X=self.dataset[0], 
+                               y=self.dataset[1], 
+                               model=self.model['ridge'])
 
 
-hidden_loops: &hidden_loops
+hidden_loops: &hidden_loops !PythonStage
   <<: *context
   params:
     <<: *default_params
