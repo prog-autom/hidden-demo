@@ -1,0 +1,90 @@
+# Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0
+# For details: https://gitlab.com/mlrep/mldev/-/blob/master/NOTICE.md
+
+services_config:
+  ports:
+    tensorboard: 6006
+    model_controller: 8090
+
+tensorboard: &tensorboard !TensorBoardService
+  name: tensorboard
+  params:
+    logdir: "log/default/log_tb"
+    port: ${root.services_config.ports.tensorboard}
+
+ngrok: &ngrok !NgrokService
+  name: ngrok
+  params:
+    token: "${env.NGROK_TOKEN}"
+    ports:
+      - ${root.services_config.ports.tensorboard}
+      - ${root.services_config.ports.model_controller}
+
+notification_bot: &notification_bot !NotificationBot
+  name: notificationBot
+  params:
+    token: "${env.TELEGRAM_TOKEN}"
+    warnings: false
+
+model_controller: &model_controller !ModelControllerService
+  name: flaskController
+  params:
+    model_path: "${env.MLDEV_MODEL_PATH}" # 'models/default/model.pickle'
+    port: ${root.services_config.ports.model_controller}
+
+prepare: &prepare_stage !Stage
+  name: prepare
+  params:
+    size: 1
+    needs_dvc: true
+  inputs:
+    - !path { path: "./src" }
+  outputs:
+    - !path { path: "./data" }
+  script:
+    - "python3 src/prepare.py"
+
+
+train: &train_stage !Stage
+  name: train
+  params:
+    needs_dvc: true
+    num_iters: 10
+  inputs:
+    - !path
+      path: "./data"
+      files:
+        - "X_train.pickle"
+        - "X_dev.pickle"
+        - "X_test.pickle"
+        - "y_train.pickle"
+        - "y_dev.pickle"
+        - "y_test.pickle"
+  outputs: &model_data
+    - !path
+      path: "models/default"
+      files:
+        - "model.pickle"
+  script:
+    - "python3 src/train.py --n ${self.params.num_iters}"
+
+present_model: &present_model !Stage
+  name: present_model
+  inputs: *model_data
+  env:
+    MLDEV_MODEL_PATH: "${path(self.inputs[0].get_files()[0])}"
+  script:
+    - "mldev run --no-commit run_model"
+
+pipeline: !GenericPipeline
+  runs:
+    - *ngrok # common services
+    - *notification_bot
+    - *prepare_stage # prepare
+    - *tensorboard # training
+    - *train_stage
+    - *present_model # finals
+
+run_model: !GenericPipeline
+  runs:
+    - *model_controller # finals

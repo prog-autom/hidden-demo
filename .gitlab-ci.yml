@@ -1,0 +1,29 @@
+# Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0
+# For details: https://gitlab.com/mlrep/mldev/-/blob/master/NOTICE.md
+
+image: ubuntu:18.04
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+stages:
+  - run
+
+# note: this script implies that the same branch exists in mldev
+before_script: 
+  - apt update && apt install -y curl 
+  - curl --silent https://gitlab.com/mlrep/mldev/-/raw/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}/install_mldev.sh -o install_mldev.sh && chmod +x ./install_mldev.sh
+  - yes | ./install_mldev.sh && mldev version
+  - echo Init ${CI_PROJECT_DIR}
+  - mldev --config .mldev/config.yaml init --no-commit -r ${CI_PROJECT_DIR}
+
+
+run:
+  stage: run
+  script:
+    - mldev --config .mldev/config.yaml run --no-commit pipeline
+  artifacts:
+    paths:
+      - results/
+  only:
+    - merge_requests
