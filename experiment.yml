@@ -1,90 +1,59 @@
 # Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0
 # For details: https://gitlab.com/mlrep/mldev/-/blob/master/NOTICE.md
 
-services_config:
-  ports:
-    tensorboard: 6006
-    model_controller: 8090
+context: &context
+  dataset: !function src/experiment.get_boston_dataset
+  hidden_loops: !function src/experiment.HiddenLoopsExperiment
+  single_model: !function src/experiment.single_model_experiment
+  gbr_model: !function src/experiment.gbr_model
+  ridge_model: !function src/experiment.ridge_model
 
-tensorboard: &tensorboard !TensorBoardService
-  name: tensorboard
+default_model: &default_params
+  gbr_model:
+    n_estimators: 150
+    max_depth: 3
+    criterion: 'mae'
+    loss: 'huber'  
+  ridge_model:
+
+
+single_model: &single_model !PythonStage
+  <<: *context
   params:
-    logdir: "log/default/log_tb"
-    port: ${root.services_config.ports.tensorboard}
+    <<: *default_params
+  models: 
+    gbr: !eval ${self.gbr_model(self.params.gbr_model)}
+    ridge: !eval ${self.ridge_model(self.params.ridge_model)}
+  python: 
+    - !exec > 
+             self.single_model(X=self.dataset[0], y=self.dataset[1], model=self.model['gbr']
+    - !exec >
+             self.single_model(X=self.dataset[0], y=self.dataset[1], model=self.model['ridge'
 
-ngrok: &ngrok !NgrokService
-  name: ngrok
+
+hidden_loops: &hidden_loops
+  <<: *context
   params:
-    token: "${env.NGROK_TOKEN}"
-    ports:
-      - ${root.services_config.ports.tensorboard}
-      - ${root.services_config.ports.model_controller}
+    <<: *default_params
+    adherence: 0.2
+    usage: 1.0
+    step: 10
+  models:
+    gbr: !eval ${self.gbr_model(self.params.gbr_model)}
+    ridge: !eval ${self.ridge_model(self.params.ridge_model)}
+  python:
+    - !exec >
+              hl = self.hidden_loop_experiment(X=self.dataset[0], 
+                                               y=self.dataset[1], 
+                                               model=self.model['gbr'], 
+                                               model_name='gbr')
+              hl.prepare_data() 
+              hl.hidden_loop_experiment(adherence=self.params.adherence,
+                                        usage=self.params.usage,
+                                        step=self.params.step)
+              hl.plot_results(path='./results')
 
-notification_bot: &notification_bot !NotificationBot
-  name: notificationBot
-  params:
-    token: "${env.TELEGRAM_TOKEN}"
-    warnings: false
-
-model_controller: &model_controller !ModelControllerService
-  name: flaskController
-  params:
-    model_path: "${env.MLDEV_MODEL_PATH}" # 'models/default/model.pickle'
-    port: ${root.services_config.ports.model_controller}
-
-prepare: &prepare_stage !Stage
-  name: prepare
-  params:
-    size: 1
-    needs_dvc: true
-  inputs:
-    - !path { path: "./src" }
-  outputs:
-    - !path { path: "./data" }
-  script:
-    - "python3 src/prepare.py"
-
-
-train: &train_stage !Stage
-  name: train
-  params:
-    needs_dvc: true
-    num_iters: 10
-  inputs:
-    - !path
-      path: "./data"
-      files:
-        - "X_train.pickle"
-        - "X_dev.pickle"
-        - "X_test.pickle"
-        - "y_train.pickle"
-        - "y_dev.pickle"
-        - "y_test.pickle"
-  outputs: &model_data
-    - !path
-      path: "models/default"
-      files:
-        - "model.pickle"
-  script:
-    - "python3 src/train.py --n ${self.params.num_iters}"
-
-present_model: &present_model !Stage
-  name: present_model
-  inputs: *model_data
-  env:
-    MLDEV_MODEL_PATH: "${path(self.inputs[0].get_files()[0])}"
-  script:
-    - "mldev run --no-commit run_model"
-
-pipeline: !GenericPipeline
+pipeline:
   runs:
-    - *ngrok # common services
-    - *notification_bot
-    - *prepare_stage # prepare
-    - *tensorboard # training
-    - *train_stage
-    - *present_model # finals
-
-run_model: !GenericPipeline
-  runs:
-    - *model_controller # finals
+    - *single_model
+    - *hidden_loops
