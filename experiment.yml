@@ -1,5 +1,4 @@
-# Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0
-# For details: https://gitlab.com/mlrep/mldev/-/blob/master/NOTICE.md
+# See paper for experiment description
 
 default_model: &default_params
   gbr_model:

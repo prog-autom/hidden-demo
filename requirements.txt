@@ -1,5 +1,4 @@
 scikit-learn~=0.22.1
-pandas~=1.0.3
 seaborn
 matplotlib
 numpy
