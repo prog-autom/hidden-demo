@@ -1,63 +1,54 @@
 # Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0
 # For details: https://gitlab.com/mlrep/mldev/-/blob/master/NOTICE.md
 
-context: &context
-  dataset: !function src/experiment.get_boston_dataset
-  hidden_loops: !function src/experiment.HiddenLoopsExperiment
-  single_model: !function src/experiment.single_model_experiment
-  gbr_model: !function src/experiment.gbr_model
-  ridge_model: !function src/experiment.ridge_model
-
 default_model: &default_params
   gbr_model:
     n_estimators: 150
     max_depth: 3
     criterion: 'mae'
     loss: 'huber'  
-  ridge_model:
+  ridge_model: {}
 
 
-single_model: &single_model !PythonStage
-  <<: *context
+single_model: &single_model !Stage
+  name: single_model
   params:
-    <<: *default_params
-  models: 
-    gbr: !eval ${self.gbr_model(self.params.gbr_model)}
-    ridge: !eval ${self.ridge_model(self.params.ridge_model)}
-  python: 
-    - !exec > 
-             self.single_model(X=self.dataset[0], 
-                               y=self.dataset[1], 
-                               model=self.model['gbr'])
-    - !exec >
-             self.single_model(X=self.dataset[0], 
-                               y=self.dataset[1], 
-                               model=self.model['ridge'])
+    needs_dvc: false
+    model_params:
+      <<: *default_params
+    experiment:
+      train_size: 0.3
+  outputs:
+    - !path
+      path: "./results/single_model"
+  script:
+    - >
+        python ./src/main.py single-model \
+               --model_params "${json(self.params.model_params)}" \
+               --params "${json(self.params.experiment)}" \
+               --folder "${self.outputs[0].path}"
 
-
-hidden_loops: &hidden_loops !PythonStage
-  <<: *context
+hidden_loops: &hidden_loops !Stage
+  name: hidden_loops
   params:
-    <<: *default_params
-    adherence: 0.2
-    usage: 1.0
-    step: 10
-  models:
-    gbr: !eval ${self.gbr_model(self.params.gbr_model)}
-    ridge: !eval ${self.ridge_model(self.params.ridge_model)}
-  python:
-    - !exec >
-              hl = self.hidden_loop_experiment(X=self.dataset[0], 
-                                               y=self.dataset[1], 
-                                               model=self.model['gbr'], 
-                                               model_name='gbr')
-              hl.prepare_data() 
-              hl.hidden_loop_experiment(adherence=self.params.adherence,
-                                        usage=self.params.usage,
-                                        step=self.params.step)
-              hl.plot_results(path='./results')
+    needs_dvc: false
+    model_params:
+      <<: *default_params
+    experiment:
+      adherence: 0.2
+      usage: 1.0
+      step: 10
+  outputs:
+    - !path
+      path: "./results/hidden_loops"
+  script:
+    - >
+      python ./src/main.py hidden-loop \
+                     --model_params "${json(self.params.model_params)}" \
+                     --params "${json(self.params.experiment)}" \
+                     --folder "${self.outputs[0].path}"
 
-pipeline:
+pipeline: !GenericPipeline
   runs:
     - *single_model
     - *hidden_loops

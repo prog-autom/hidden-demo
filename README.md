@@ -1,10 +1,12 @@
 # Welcome too the hidden loops demo!
 
-## Aout this repo
+## About this repo
 
 ## Problem statement
 
-## How to tun
+## How to run
+
+## How to run with mldev 
 
 ### Source code
 

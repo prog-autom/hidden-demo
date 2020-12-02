@@ -3,22 +3,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sb
 
-
-from sklearn.linear_model import Ridge, RidgeCV
-from sklearn.ensemble import ExtraTreesRegressor, GradientBoostingRegressor
-from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import RidgeCV
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn import model_selection
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
-import pandas as pd
-
-from sklearn.decomposition import PCA
-
 
 def gbr_model(**kwargs):  
     return GradientBoostingRegressor(**kwargs)
+
 
 def ridge_model(**kwargs):
     return Pipeline([['scaler', StandardScaler()], ['ridgecv', RidgeCV(**kwargs)]])
@@ -38,21 +33,26 @@ def single_model_experiment(X, y, model, model_name="model", seed=1, train_size=
     y_train, y_test = model_selection.train_test_split(X, y, train_size=train_size)
 
     # Fit regression model
-    gbr = model
+    gbr = model()
     gbr.fit(X_train, np.log(y_train))
     gbr_test = np.exp(gbr.predict(X_test))
     gbr_train = np.exp(gbr.predict(X_train))
 
-    print('train: ', np.float16(mean_squared_error(y_train, gbr_train)), \
+    print('train: ', np.float16(mean_squared_error(y_train, gbr_train)),
           np.float16(r2_score(y_train, gbr_train)))
-    print('test:  ', np.float16(mean_squared_error(y_test, gbr_test)), \
+    print('test:  ', np.float16(mean_squared_error(y_test, gbr_test)),
           np.float16(r2_score(y_test, gbr_test)))
 
-    sb.regplot(y_train, gbr_train).get_figure().savefig(f"{model_name}-train.png")
-    sb.regplot(y_test, gbr_test).get_figure().savefig(f"{model_name}-test.png")
-    
-    
-    
+    plt.figure()
+    plt.title = "Regression plot"
+    sb.regplot(y_train, gbr_train, label="Train")
+    sb.regplot(y_test, gbr_test, label="Test")
+    plt.legend()
+    plt.xlabel('y')
+    plt.ylabel('prediction')
+    plt.savefig(f"{model_name}-train-test.png")
+
+
 def feature_importances(clf, data, path, model_name="model"):
     feature_importance = clf.feature_importances_
     # make importances relative to max importance
@@ -66,7 +66,7 @@ def feature_importances(clf, data, path, model_name="model"):
     plt.savefig(f"{path}/{model_name}-feature-importance.png")
 
 
-def plot_gbr_deviance(gbr, path, model_name="model"):
+def plot_gbr_deviance(X_test, y_test, gbr, path, model_name="model"):
     # #############################################################################
     # Plot training deviance
 
@@ -88,16 +88,14 @@ def plot_gbr_deviance(gbr, path, model_name="model"):
     plt.ylim(-0.1, 1)
     plt.savefig(f"{path}/{model_name}-deviance.png")
     
-      
-        
+
 class HiddenLoopExperiment:
-    
-    #params = {'loss':'huber', 'n_estimators': 1000, 'max_depth': 5, 'max_features': 1.0,
+    # params = {'loss':'huber', 'n_estimators': 1000, 'max_depth': 5, 'max_features': 1.0,
     #          'learning_rate': 0.01, 'random_state':0, 'subsample':0.5}
     default_params = {'loss':'ls', 'n_estimators': 50, 
-              'max_depth': 3, 'max_features': 1.0, 
-              'learning_rate': 0.5, 'random_state':0, 
-              'subsample':0.75}    
+                      'max_depth': 3, 'max_features': 1.0,
+                      'learning_rate': 0.5, 'random_state':0,
+                      'subsample':0.75}
     
     def __init__(self, X, y, model, model_name="model"):
         self.X = X
@@ -107,9 +105,7 @@ class HiddenLoopExperiment:
         self.model = model
         self.model_name = model_name
 
-    
     def prepare_data(self, train_size=0.3):
-
         self.X_orig, self.X_new, self.y_orig, self.y_new = \
             model_selection.train_test_split(self.X, np.log(self.y), train_size=train_size)
         
@@ -118,8 +114,7 @@ class HiddenLoopExperiment:
         self.mae, self.r2 = [], []
         self.mae_orig, self.r2_orig = [], []
         self.mae_new, self.r2_new = [], []
-        
-        
+
     def add_instances(self, X, y, model, usage=0.9, adherence=0.9):
         assert callable(model)
 
@@ -132,8 +127,7 @@ class HiddenLoopExperiment:
                 new_price = y[sample]
 
             yield sample, new_price
-          
-    
+
     def eval_m(self, gbr, X, y, mae=None, r2=None):
         gbr_pred = gbr.predict(X)
         
@@ -148,7 +142,6 @@ class HiddenLoopExperiment:
         return mae_v, r2_v
 
     def hidden_loop_experiment(self, seed=42, adherence=0.2, usage=0.1, step=10):
-
         np.random.seed(seed)
         
         self.X_tr, self.X_tst, self.y_tr, self.y_tst = model_selection.train_test_split(self.X_curr, self.y_curr)
@@ -167,7 +160,6 @@ class HiddenLoopExperiment:
         self.eval_m(self.gbr, self.X_orig, self.y_orig, self.mae_orig, self.r2_orig)
         self.eval_m(self.gbr, self.X_new, self.y_new, self.mae_new, self.r2_new)
 
-
         i = 0
 
         for idx, pred in self.add_instances(self.X_new, self.y_new, lambda : (self.gbr, self.m), 
@@ -177,7 +169,6 @@ class HiddenLoopExperiment:
 
             i = i + 1
             if i % step == 0:
-                
                 self.X_tr, self.X_tst, \
                 self.y_tr, self.y_tst = model_selection.train_test_split(self.X_curr, self.y_curr)
 
@@ -192,14 +183,17 @@ class HiddenLoopExperiment:
                 self.eval_m(self.gbr, self.X_orig, self.y_orig, self.mae_orig, self.r2_orig)
                 self.eval_m(self.gbr, self.X_new, self.y_new, self.mae_new, self.r2_new)
 
-                
     def plot_results(self, path):
         plt.figure()
         sb.lineplot(range(len(self.r2)), self.r2, label="R2, dynamic data")
+        plt.legend()
+        plt.xlabel('rounds')
         plt.savefig(f"{path}/{self.model_name}-r2-dynamic.png")
         
         plt.figure()
         sb.lineplot(range(len(self.mae)), self.mae, label="MAE, dynamic data")
+        plt.legend()
+        plt.xlabel('rounds')
         plt.savefig(f"{path}/{self.model_name}-mae-dynamic.png")
         
     def save_results(self, path):
