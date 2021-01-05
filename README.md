@@ -58,7 +58,9 @@ Install the ``mldev`` by executing
 
 ```bash
 $ git clone https://github.com/prog-autom/hidden-demo.git
-$ curl https://gitlab.com/mlrep/mldev/-/raw/develop/install_mldev.sh
+$ curl https://gitlab.com/mlrep/mldev/-/raw/develop/install_mldev.sh -o install_mldev.sh
+$ chmod +x install_mldev.sh
+$ yes n | install_mldev.sh
 ``` 
 Then initialize the experiment, this will install required dependencies
 
@@ -81,9 +83,21 @@ Results will be placed into ``./results`` folder as well.
 Source code can be found in ``./src`` folder. The [main.py](./src/main.py) file contains glue code to run experiments.
 The [experiment.py](./src/experiment.py) contains experiment implementation and utility procedures.
 
-## Reference the paper
+## Citing
 
-TODO
+If you find results useful, please cire the paper as following
+
+```bibtex
+@inproceedings{Khritankov2021Hidden,
+    title = "Hidden feedback loops in machine learning systems: a simulation model and preliminary results",
+    author = "Khritankov, Anton",
+    booktitle = "13th International Conference, SWQD 2021, Vienna, Austria, January 19–21, 2021",
+    year = "2021",
+    volume = "404",
+    series = "Software Quality: Future Perspectives on Software Engineering Quality"
+    publisher = "Springer International Publishing",
+}
+```
 
 ## License
 
