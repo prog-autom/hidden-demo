@@ -1,6 +1,6 @@
 [core]
-    remote = google_drive_remote
+    remote = localremote
 ['remote "myremote"']
-    url = /mnt/myremote
+    url = .mldev/localremote
 ['remote "google_drive_remote"']
     url = gdrive://
