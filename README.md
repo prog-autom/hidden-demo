@@ -91,11 +91,12 @@ If you find results useful, please cire the paper as following
 @inproceedings{Khritankov2021Hidden,
     title = "Hidden feedback loops in machine learning systems: a simulation model and preliminary results",
     author = "Khritankov, Anton",
-    booktitle = "13th International Conference, SWQD 2021, Vienna, Austria, January 19–21, 2021",
+    booktitle = "Proceedings of the 13th International Conference, SWQD 2021, Vienna, Austria, January 19–21, 2021",
     year = "2021",
+    pages={54--65},
     volume = "404",
-    series = "Software Quality: Future Perspectives on Software Engineering Quality"
-    publisher = "Springer International Publishing",
+    series = "Software Quality: Future Perspectives on Software Engineering Quality",
+    publisher = "Springer International Publishing"
 }
 ```
 
