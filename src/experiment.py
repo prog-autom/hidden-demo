@@ -10,6 +10,11 @@ from sklearn import model_selection
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
+import random
+
+def init_random_state(seed):
+    np.random.seed(int(seed))
+    random.seed = int(seed)
 
 def gbr_model(**kwargs):
     """
@@ -47,7 +52,7 @@ def get_boston_dataset():
     return X, y, desc
 
 
-def single_model_experiment(X, y, model, model_name="model", seed=1, train_size=0.9):
+def single_model_experiment(X, y, model, model_name="model", train_size=0.9):
     """
     Trains a `model` on the given dataset `X` with the target `y`.
 
@@ -61,7 +66,6 @@ def single_model_experiment(X, y, model, model_name="model", seed=1, train_size=
     :param train_size:
     :return: None
     """
-    np.random.seed(seed)
 
     X_train, X_test, \
     y_train, y_test = model_selection.train_test_split(X, y, train_size=train_size)
@@ -79,8 +83,8 @@ def single_model_experiment(X, y, model, model_name="model", seed=1, train_size=
 
     plt.figure()
     plt.title = "Regression plot"
-    sb.regplot(y_train, gbr_train, label="Train")
-    sb.regplot(y_test, gbr_test, label="Test")
+    sb.regplot(x=y_train, y=gbr_train, label="Train")
+    sb.regplot(x=y_test, y=gbr_test, label="Test")
     plt.legend()
     plt.xlabel('y')
     plt.ylabel('prediction')
@@ -144,7 +148,14 @@ class HiddenLoopExperiment:
                       'max_depth': 3, 'max_features': 1.0,
                       'learning_rate': 0.5, 'random_state':0,
                       'subsample':0.75}
-    
+
+    default_state = {
+        'r2': 'R^2, dynamic data',
+        'mae': 'MAE, dynamic_data',
+        'r2_orig': 'R^2, original data',
+        'mae_orig': 'MAE, original data'
+    }
+
     def __init__(self, X, y, model, model_name="model"):
         """
         Creates an instance of the experiment
@@ -168,8 +179,21 @@ class HiddenLoopExperiment:
         :param train_size: size of the sliding window as a portion of the dataset
         :return: None
         """
+        self.train_size = float(train_size)
+
         self.X_orig, self.X_new, self.y_orig, self.y_new = \
-            model_selection.train_test_split(self.X, np.log(self.y), train_size=train_size)
+            model_selection.train_test_split(
+                self.X,
+                np.log(self.y),
+                train_size=self.train_size)
+
+        self.train_len = len(self.X_orig)
+
+        self.X_new, self.X_orig_tst, self.y_new, self.y_orig_tst = \
+            model_selection.train_test_split(
+                self.X_new,
+                self.y_new,
+                test_size=int(0.25*len(self.X_orig)))
         
         self.X_curr = self.X_orig
         self.y_curr = self.y_orig
@@ -196,9 +220,9 @@ class HiddenLoopExperiment:
         """
 
         for sample in np.random.permutation(len(X)):
-            if np.random.random() <= usage:
+            if np.random.random() <= float(usage):
                 pred = self.gbr.predict([X[sample]])
-                new_price = np.random.normal(pred, self.m*adherence)[0]
+                new_price = np.random.normal(pred, self.m*float(adherence))[0]
             else:
                 new_price = y[sample]
 
@@ -217,7 +241,7 @@ class HiddenLoopExperiment:
         
         return mae_v, r2_v
 
-    def hidden_loop_experiment(self, seed=42, adherence=0.2, usage=0.1, step=10):
+    def hidden_loop_experiment(self, adherence=0.2, usage=0.1, step=10):
         """
         Main method of the experiment
 
@@ -227,7 +251,6 @@ class HiddenLoopExperiment:
         :param step: number of steps the model is retrained
         :return: None
         """
-        np.random.seed(seed)
         
         self.X_tr, self.X_tst, self.y_tr, self.y_tst = model_selection.train_test_split(self.X_curr, self.y_curr)
 
@@ -240,20 +263,18 @@ class HiddenLoopExperiment:
         self.m, self.r = self.eval_m(self.gbr, self.X_tst, self.y_tst, self.mae, self.r2)
         m_b, r_b = self.eval_m(self.gbr_base, self.X_tst, self.y_tst)
 
-        print(self.m, self.r, m_b, r_b)
-        
-        self.eval_m(self.gbr, self.X_orig, self.y_orig, self.mae_orig, self.r2_orig)
+        self.eval_m(self.gbr, self.X_orig_tst, self.y_orig_tst, self.mae_orig, self.r2_orig)
         self.eval_m(self.gbr, self.X_new, self.y_new, self.mae_new, self.r2_new)
 
         i = 0
 
         for idx, pred in self._add_instances(self.X_new, self.y_new,
-                                             adherence=adherence, usage=usage):
+                                             adherence=float(adherence), usage=float(usage)):
             self.X_curr = np.concatenate((self.X_curr[1:], [self.X_new[idx]]))
             self.y_curr = np.concatenate((self.y_curr[1:], [pred]))
 
             i = i + 1
-            if i % step == 0:
+            if i % int(step) == 0:
                 self.X_tr, self.X_tst, \
                 self.y_tr, self.y_tst = model_selection.train_test_split(self.X_curr, self.y_curr)
 
@@ -263,35 +284,29 @@ class HiddenLoopExperiment:
                 self.m, self.r = self.eval_m(self.gbr, self.X_tst, self.y_tst, self.mae, self.r2)
                 m_b, r_b = self.eval_m(self.gbr_base, self.X_tst, self.y_tst)
 
-                print(self.m, self.r, m_b, r_b)
-
-                self.eval_m(self.gbr, self.X_orig, self.y_orig, self.mae_orig, self.r2_orig)
+                self.eval_m(self.gbr, self.X_orig_tst, self.y_orig_tst, self.mae_orig, self.r2_orig)
                 self.eval_m(self.gbr, self.X_new, self.y_new, self.mae_new, self.r2_new)
 
-    def plot_results(self, path):
-        """
-        Saves figures to the `path` specified: mean absolute error (MAE) and R2 over iterations
 
-        :param path: base folder for plots
-        :return:
-        """
-        plt.figure()
-        sb.lineplot(range(len(self.r2)), self.r2, label="R2, dynamic data")
-        plt.legend()
-        plt.xlabel('rounds')
-        plt.savefig(f"{path}/{self.model_name}-r2-dynamic.png")
-        
-        plt.figure()
-        sb.lineplot(range(len(self.mae)), self.mae, label="MAE, dynamic data")
-        plt.legend()
-        plt.xlabel('rounds')
-        plt.savefig(f"{path}/{self.model_name}-mae-dynamic.png")
-        
-    def save_results(self, path):
-        """
-        Not implemented
+class MultipleResults:
+    import pandas as pd
 
-        :param path:
-        :return:
-        """
-        ...
+    def __init__(self, model_name, **initial_state):
+        self.model_name = model_name
+        self.state_vars = initial_state
+        for k, v in initial_state.items():
+            vars(self)[k] = list()
+
+    def add_results(self, **update_state):
+        for k in self.state_vars.keys():
+            vars(self)[k].extend([{'round':i, k:j} for i, j in enumerate(update_state[k])])
+
+    def plot_multiple_results(self, path):
+        for k in self.state_vars.keys():
+            data = MultipleResults.pd.DataFrame(data=vars(self)[k])
+
+            plt.figure()
+            ax = sb.lineplot(data=data, x="round", y=k)
+            ax.set(xlabel='rounds', ylabel=k, title=self.state_vars[k])
+            plt.savefig(f"{path}/{self.model_name}-{k}.png")
+            data.to_csv(f"{path}/{self.model_name}-{k}.csv")

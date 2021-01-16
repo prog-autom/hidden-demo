@@ -1,11 +1,14 @@
 import argparse
 import json
 import os
+from tqdm import tqdm
 
 from experiment import *
 
 parser = None
-folder = "./results"
+folder = None
+run_times = None
+random_seed = None
 
 
 def create_model(model_params):
@@ -25,21 +28,29 @@ def single_model(model_params, params):
     print(f"Running single-model experiment")
     X, y, _ = get_boston_dataset()
     for model, model_name in create_model(model_params):
-        single_model_experiment(X, y, model, model_name=f"{folder}/{model_name}", **params)
+        for trial in tqdm(range(0, run_times)):
+            os.makedirs(f"{folder}/{trial}", exist_ok=True)
+            single_model_experiment(X, y, model, model_name=f"{folder}/{trial}/{model_name}", **params)
 
 
 def hidden_loop(model_params, params):
     print(f"Running hidden-loop experiment")
     X, y, _ = get_boston_dataset()
+
     for model, model_name in create_model(model_params):
-        hle = HiddenLoopExperiment(X, y, model, model_name)
-        prepare_params = {k: params[k] for k in params.keys() & {'train_size'}}
-        hle.prepare_data(**prepare_params)
+        results = MultipleResults(model_name, **HiddenLoopExperiment.default_state)
 
-        loop_params = {k: params[k] for k in params.keys() & {'seed', 'adherence', 'usage', 'step'}}
-        hle.hidden_loop_experiment(**loop_params)
+        for trial in tqdm(range(0, run_times)):
+            hle = HiddenLoopExperiment(X, y, model, model_name)
+            prepare_params = {k: params[k] for k in params.keys() & {'train_size'}}
+            hle.prepare_data(**prepare_params)
 
-        hle.plot_results(folder)
+            loop_params = {k: params[k] for k in params.keys() & {'adherence', 'usage', 'step'}}
+            hle.hidden_loop_experiment(**loop_params)
+
+            results.add_results(**vars(hle))
+
+        results.plot_multiple_results(folder)
 
 
 if __name__ == "__main__":
@@ -47,16 +58,22 @@ if __name__ == "__main__":
     parser.add_argument("kind", type=str, help="Kind of experiment: single-model or hidden-loop")
     parser.add_argument("--params", type=str, help="A json string with experiment parameters")
     parser.add_argument("--model_params", type=str, help="A json string with model name and parameters")
-    parser.add_argument("--folder", type=str, help="Save results to this folder")
+    parser.add_argument("--folder", type=str, help="Save results to this folder", default="./results")
+    parser.add_argument("--random_seed", type=int, help="Use the provided value to init the random state", default=42)
+    parser.add_argument("--run_times", type=int, help="How many time to repeat the trial", default=1)
     args = parser.parse_args()
     model_str = args.model_params
     params_str = args.params
     kind = args.kind
     folder = args.folder
+    random_seed = args.random_seed
+    run_times = args.run_times
     os.makedirs(folder, exist_ok=True)
 
     model_dict = json.loads(model_str)
     params_dict = json.loads(params_str)
+
+    init_random_state(random_seed)
 
     if kind == "single-model":
         single_model(model_dict, params_dict)

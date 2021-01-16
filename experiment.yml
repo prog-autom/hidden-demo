@@ -25,7 +25,11 @@ single_model: &single_model !Stage
         python ./src/main.py single-model \
                --model_params "${json(self.params.model_params)}" \
                --params "${json(self.params.experiment)}" \
-               --folder "${self.outputs[0].path}"
+               --folder "${self.outputs[0].path}" \
+               --random_seed 42 \
+               --run_times 10
+    - >
+      echo "${json(self.params)}" > "${self.outputs[0].path}/params.json"
 
 hidden_loops: &hidden_loops !Stage
   name: hidden_loops
@@ -35,19 +39,40 @@ hidden_loops: &hidden_loops !Stage
       <<: *default_params
     experiment:
       adherence: 0.2
-      usage: 1.0
-      step: 10
+      usage: 0.7
+      step: 20
   outputs:
     - !path
-      path: "./results/hidden_loops"
+      path: !line |
+        ./results/hidden_loops/
+        ${self.params.experiment.adherence}-
+        ${self.params.experiment.usage}-
+        ${self.params.experiment.step}
   script:
     - >
       python ./src/main.py hidden-loop \
                      --model_params "${json(self.params.model_params)}" \
                      --params "${json(self.params.experiment)}" \
-                     --folder "${self.outputs[0].path}"
+                     --folder "${self.outputs[0].path}" \
+                     --random_seed 42 \
+                     --run_times 10
+    - >
+      echo "${json(self.params)}" > "${self.outputs[0].path}/params.json"
 
 pipeline: !GenericPipeline
   runs:
     - *single_model
     - *hidden_loops
+
+run_experiment: !GenericPipeline
+  runs:
+    - !Stage
+      <<: *hidden_loops
+      params:
+        needs_dvc: false
+        model_params:
+          <<: *default_params
+        experiment:
+          adherence: ${env.adherence}
+          usage: ${env.usage}
+          step: ${env.step}

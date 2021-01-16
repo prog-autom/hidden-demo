@@ -36,7 +36,8 @@ For single model experiment run
 $ python ./src/main.py single-model \
          --folder ./results/single-model \
          --model_params "{\"gbr_model\": {\"n_estimators\": 150, \"max_depth\": 3, \"criterion\": \"mae\", \"loss\": \"huber\"}, \"ridge_model\": {}}\" \
-         --params "{\"train_size\": 0.3}" 
+         --params "{\"train_size\": 0.3}"
+         --random_seed 42 
 ```
 
 For hidden loops you need
@@ -46,6 +47,7 @@ $ python ./src/main.py hidden-loop \
         --folder ./results/hidden-loop \
         --model_params "{\"gbr_model\": {\"n_estimators\": 150, \"max_depth\": 3, \"criterion\": \"mae\", \"loss\": \"huber\"}, \"ridge_model\": {}}" \
         --params "{\"adherence\": 0.2, \"usage\": 1.0, \"step\": 10}" 
+        --random_seed 42
 ```
 Resulting figures will be placed in the corresponding ``./results`` folder. 
 
@@ -78,7 +80,15 @@ $ cd ./hidden-demo && mldev --config ./hidden-demo/.mldev/config.yaml run --no-c
 
 Results will be placed into ``./results`` folder as well.
 
-### Source code
+## Complete experiment with mldev
+
+There is a script ``./run_experiment.sh`` that runs the experiment
+for a grid of parameters, usage from 0.1 to 0.9, adherenec from 0.1 to 0.9 
+and step size 10 or 20.
+
+The script relies on mldev to run trials for a fixed set of parameters.
+
+## Source code
 
 Source code can be found in ``./src`` folder. The [main.py](./src/main.py) file contains glue code to run experiments.
 The [experiment.py](./src/experiment.py) contains experiment implementation and utility procedures.
@@ -99,6 +109,8 @@ If you find results useful, please cire the paper as following
     publisher = "Springer International Publishing"
 }
 ```
+
+There is an updated version of the paper at [arXiv:2101.05673](https://arxiv.org/abs/2101.05673)
 
 ## License
 
