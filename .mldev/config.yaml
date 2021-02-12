@@ -6,4 +6,4 @@ logger:
 environ:
   ASK_MISSING: 0
 #  DVC_REMOTE_GDRIVE: ""
-  DVC_REMOTE_NAME: "myremote"
+  DVC_REMOTE_NAME: "localremote"
