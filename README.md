@@ -35,7 +35,7 @@ For single model experiment run
 ```bash
 $ python ./src/main.py single-model \
          --folder ./results/single-model \
-         --model_params "{\"gbr_model\": {\"n_estimators\": 150, \"max_depth\": 3, \"criterion\": \"mae\", \"loss\": \"huber\"}, \"ridge_model\": {}}\" \
+         --model_params "{\"gbr_model\": {\"n_estimators\": 150, \"max_depth\": 3, \"criterion\": \"mae\", \"loss\": \"huber\"}, \"ridge_model\": {}}" \
          --params "{\"train_size\": 0.3}"
          --random_seed 42 
 ```
@@ -46,7 +46,7 @@ For hidden loops you need
 $ python ./src/main.py hidden-loop \
         --folder ./results/hidden-loop \
         --model_params "{\"gbr_model\": {\"n_estimators\": 150, \"max_depth\": 3, \"criterion\": \"mae\", \"loss\": \"huber\"}, \"ridge_model\": {}}" \
-        --params "{\"adherence\": 0.2, \"usage\": 1.0, \"step\": 10}" 
+        --params "{\"adherence\": 0.2, \"usage\": 1.0, \"step\": 10}" \
         --random_seed 42
 ```
 Resulting figures will be placed in the corresponding ``./results`` folder. 
