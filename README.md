@@ -36,7 +36,7 @@ For single model experiment run
 $ python ./src/main.py single-model \
          --folder ./results/single-model \
          --model_params "{\"gbr_model\": {\"n_estimators\": 150, \"max_depth\": 3, \"criterion\": \"mae\", \"loss\": \"huber\"}, \"ridge_model\": {}}" \
-         --params "{\"train_size\": 0.3}"
+         --params "{\"train_size\": 0.3}" \
          --random_seed 42 
 ```
 
