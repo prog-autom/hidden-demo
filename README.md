@@ -95,7 +95,7 @@ The [experiment.py](./src/experiment.py) contains experiment implementation and 
 
 ## Citing
 
-If you find results useful, please cire the paper as following
+If you find results useful, please cite the paper and the reproducibility tool as following
 
 ```bibtex
 @inproceedings{Khritankov2021Hidden,
@@ -108,6 +108,19 @@ If you find results useful, please cire the paper as following
     series = "Software Quality: Future Perspectives on Software Engineering Quality",
     publisher = "Springer International Publishing"
 }
+
+@InProceedings{10.1007/978-3-031-12285-9_1,
+ author="Khritankov, Anton and Pershin, Nikita and Ukhov, Nikita and Ukhov, Artem",
+ editor="Pozanenko, Alexei and Stupnikov, Sergey and Thalheim, Bernhard and Mendez, Eva and Kiselyova, Nadezhda",
+ title="MLDev: Data Science Experiment Automation and Reproducibility Software",
+ booktitle="Data Analytics and Management in Data Intensive Domains",
+ year="2022",
+ publisher="Springer International Publishing",
+ address="Cham",
+ pages="3--18",
+ isbn="978-3-031-12285-9"
+}
+
 ```
 
 There is an updated version of the paper at [arXiv:2101.05673](https://arxiv.org/abs/2101.05673)
